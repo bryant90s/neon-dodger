@@ -440,7 +440,7 @@ class MainScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true })
       .setDepth(1000);
 
-    const buttonText = this.add
+    this.add
       .text(w / 2, h / 2 + 90, "TRY AGAIN", {
         fontFamily:
           "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
@@ -468,4 +468,5 @@ new Phaser.Game({
   height: 500,
   parent: "app",
   scene: MainScene,
+
 });

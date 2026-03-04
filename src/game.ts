@@ -98,7 +98,8 @@ class MainScene extends Phaser.Scene {
 
     const w = this.scale.width;
     const h = this.scale.height;
-
+    
+    this.cameras.main.setViewport(0, 0, w, h);
     this.cameras.main.setBackgroundColor("#0f1226");
 
     // Best score
@@ -174,14 +175,16 @@ class MainScene extends Phaser.Scene {
     });
 
     // Resize handling (RESIZE mode needs this)
-    this.scale.on("resize", (gameSize: Phaser.Structs.Size) => {
-      const newW = gameSize.width;
-      const newH = gameSize.height;
+this.scale.on("resize", (gameSize: Phaser.Structs.Size) => {
+  const w = gameSize.width;
+  const h = gameSize.height;
 
-      this.player.y = newH - 50;
-      this.comboText.x = newW - 15;
-      this.hintText.y = newH - 26;
-    });
+  this.cameras.main.setViewport(0, 0, w, h);
+
+  this.player.y = h - 50;
+  this.comboText.x = w - 15;
+  this.hintText.y = h - 26;
+});
 
     // Safety: stop music when scene is shut down
     this.events.once("shutdown", () => {
@@ -502,3 +505,4 @@ new Phaser.Game({
   },
   scene: MainScene,
 });
+

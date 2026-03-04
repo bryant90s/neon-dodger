@@ -100,13 +100,13 @@ class MainScene extends Phaser.Scene {
     const h = this.scale.height;
     
     this.cameras.main.setViewport(0, 0, w, h);
-    this.cameras.main.setBackgroundColor("#0f1226");
+    this.cameras.main.setBackgroundColor("#000000");
 
     // Best score
     this.best = Number(localStorage.getItem("neon_best") || "0");
 
     // Player
-    this.player = this.add.rectangle(w / 2, h - 50, 80, 18, 0x39e7ff);
+    this.player = this.add.rectangle(w / 2, h - 50, 80, 18, 0x39ff14);
     this.player.setStrokeStyle(2, 0xffffff, 0.2);
 
     // Controls
@@ -220,7 +220,7 @@ this.scale.on("resize", (gameSize: Phaser.Structs.Size) => {
       this.player.y,
       this.player.width,
       this.player.height,
-      0x39e7ff
+      0x39ff14
     );
     t.setAlpha(0.22);
     this.trail.push(t);
@@ -254,7 +254,7 @@ this.scale.on("resize", (gameSize: Phaser.Structs.Size) => {
       let size = Phaser.Math.Between(18, 40);
       if (strength > 0.6) size = Phaser.Math.Clamp(size - 6, 18, 40);
 
-      const block = this.add.rectangle(x, -20, size, size, 0xff4d6d);
+      const block = this.add.rectangle(x, -20, size, size, 0xff0033);
       block.setStrokeStyle(2, 0xffffff, 0.15);
 
       this.blocks.push({ rect: block, dodged: false });
@@ -498,7 +498,7 @@ this.scale.on("resize", (gameSize: Phaser.Structs.Size) => {
 new Phaser.Game({
   type: Phaser.AUTO,
   parent: "app",
-  backgroundColor: "#0f1226",
+  backgroundColor: "#000000",
 
   width: 500,
   height: 500,
@@ -510,3 +510,4 @@ new Phaser.Game({
 
   scene: MainScene,
 });
+

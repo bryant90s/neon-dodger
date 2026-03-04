@@ -95,6 +95,7 @@ button:focus-visible {
     /* --- Mobile touch fixes for the game --- */
 
 html, body {
+html, body {
   margin: 0;
   padding: 0;
   width: 100%;
@@ -102,14 +103,11 @@ html, body {
   overflow: hidden;
   background: #0f1226;
   touch-action: none;
-}
-#app {
-  width: 100vw;
-  height: 100vh;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
-canvas {
-  width: 100vw !important;
-  height: 100vh !important;
-  display: block;
+#app {
+  width: 100%;
+  height: 100%;
 }

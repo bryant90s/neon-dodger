@@ -6,6 +6,9 @@ class MainScene extends Phaser.Scene {
   private player!: Phaser.GameObjects.Rectangle;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
 
+  private targetX: number | null = null;
+  private isTouching = false;
+  
   private blocks: Block[] = [];
   private trail: Phaser.GameObjects.Rectangle[] = [];
 
@@ -96,6 +99,26 @@ class MainScene extends Phaser.Scene {
     // Player
     this.player = this.add.rectangle(w / 2, h - 50, 80, 18, 0x39e7ff);
     this.player.setStrokeStyle(2, 0xffffff, 0.2);
+        // Touch / mouse controls (mobile-friendly)
+    this.input.on("pointerdown", (p: Phaser.Input.Pointer) => {
+      // ignore taps on UI when game is over (TRY AGAIN uses its own handler)
+      if (!this.alive) return;
+
+      this.isTouching = true;
+      this.targetX = p.x;
+    });
+
+    this.input.on("pointermove", (p: Phaser.Input.Pointer) => {
+      if (!this.alive) return;
+      if (!this.isTouching) return;
+
+      this.targetX = p.x;
+    });
+
+    this.input.on("pointerup", () => {
+      this.isTouching = false;
+      this.targetX = null;
+    });
 
     // Controls
     this.cursors = this.input.keyboard!.createCursorKeys();
@@ -156,11 +179,25 @@ class MainScene extends Phaser.Scene {
     const w = this.scale.width;
 
     // Movement
-    if (this.cursors.left.isDown) this.player.x -= 6;
-    if (this.cursors.right.isDown) this.player.x += 6;
+    // Movement (keyboard + touch)
+    let vx = 0;
 
-    this.player.x = Phaser.Math.Clamp(this.player.x, 40, w - 40);
+    // Keyboard
+    if (this.cursors.left.isDown) vx = -6;
+    if (this.cursors.right.isDown) vx = 6;
 
+    // Touch target (drag finger left/right)
+    if (this.targetX !== null) {
+      const dx = this.targetX - this.player.x;
+      // Smooth follow. tweak the 0.18 for faster/slower follow.
+      vx = Phaser.Math.Clamp(dx * 0.18, -10, 10);
+    }
+
+    this.player.x += vx;
+
+    // Clamp using player width (works if you swap rectangle for a sprite later)
+    const half = this.player.displayWidth / 2;
+    this.player.x = Phaser.Math.Clamp(this.player.x, half, w - half);
     // Trail
     const t = this.add.rectangle(
       this.player.x,
@@ -470,3 +507,4 @@ new Phaser.Game({
   scene: MainScene,
 
 });
+

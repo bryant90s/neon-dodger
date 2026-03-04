@@ -92,5 +92,17 @@ button:focus-visible {
   }
   button {
     background-color: #f9f9f9;
-  }
+    /* --- Mobile touch fixes for the game --- */
+
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+canvas {
+  touch-action: none;
 }

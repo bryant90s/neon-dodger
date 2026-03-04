@@ -8,7 +8,7 @@ class MainScene extends Phaser.Scene {
 
   private targetX: number | null = null;
   private isTouching = false;
-  
+
   private blocks: Block[] = [];
   private trail: Phaser.GameObjects.Rectangle[] = [];
 
@@ -18,6 +18,7 @@ class MainScene extends Phaser.Scene {
   private scoreText!: Phaser.GameObjects.Text;
   private bestText!: Phaser.GameObjects.Text;
   private comboText!: Phaser.GameObjects.Text;
+  private hintText!: Phaser.GameObjects.Text;
 
   private spawnTimer = 0;
   private spawnDelay = 800;
@@ -33,7 +34,7 @@ class MainScene extends Phaser.Scene {
   private bgMusic?: Phaser.Sound.BaseSound;
   private bgStarted = false;
 
-   private taunts = [
+  private taunts = [
     "LMAO. You actually suck. Need me to slow it down, pussy?",
     "You lasted like 0.2 seconds. Probably shorter in bed.",
     "You peaked in high school",
@@ -55,12 +56,10 @@ class MainScene extends Phaser.Scene {
       "win",
       new URL("./assets/sounds/winning.wav", import.meta.url).toString()
     );
-
     this.load.audio(
       "lose",
       new URL("./assets/sounds/lose.wav", import.meta.url).toString()
     );
-
     this.load.audio(
       "bg",
       new URL("./assets/sounds/background.wav", import.meta.url).toString()
@@ -78,6 +77,14 @@ class MainScene extends Phaser.Scene {
     this.tension = 0;
     this.dodgeCount = 0;
 
+    // Reset audio gate every run (THIS was one of your main bugs)
+    this.bgStarted = false;
+    if (this.bgMusic) {
+      this.bgMusic.stop();
+      this.bgMusic.destroy();
+      this.bgMusic = undefined;
+    }
+
     // Clean up objects
     for (const item of this.blocks) item.rect.destroy();
     this.blocks = [];
@@ -87,6 +94,7 @@ class MainScene extends Phaser.Scene {
     // Remove old listeners (prevents stacking after restart)
     this.input.keyboard?.removeAllListeners();
     this.input.removeAllListeners();
+    this.scale.removeAllListeners();
 
     const w = this.scale.width;
     const h = this.scale.height;
@@ -99,11 +107,13 @@ class MainScene extends Phaser.Scene {
     // Player
     this.player = this.add.rectangle(w / 2, h - 50, 80, 18, 0x39e7ff);
     this.player.setStrokeStyle(2, 0xffffff, 0.2);
-        // Touch / mouse controls (mobile-friendly)
-    this.input.on("pointerdown", (p: Phaser.Input.Pointer) => {
-      // ignore taps on UI when game is over (TRY AGAIN uses its own handler)
-      if (!this.alive) return;
 
+    // Controls
+    this.cursors = this.input.keyboard!.createCursorKeys();
+
+    // Touch / mouse controls (mobile-friendly)
+    this.input.on("pointerdown", (p: Phaser.Input.Pointer) => {
+      if (!this.alive) return;
       this.isTouching = true;
       this.targetX = p.x;
     });
@@ -111,7 +121,6 @@ class MainScene extends Phaser.Scene {
     this.input.on("pointermove", (p: Phaser.Input.Pointer) => {
       if (!this.alive) return;
       if (!this.isTouching) return;
-
       this.targetX = p.x;
     });
 
@@ -119,9 +128,6 @@ class MainScene extends Phaser.Scene {
       this.isTouching = false;
       this.targetX = null;
     });
-
-    // Controls
-    this.cursors = this.input.keyboard!.createCursorKeys();
 
     // UI
     this.scoreText = this.add.text(15, 12, "$0", {
@@ -144,13 +150,13 @@ class MainScene extends Phaser.Scene {
       })
       .setOrigin(1, 0);
 
-    this.add.text(15, h - 26, "Move: ←/→   Restart: R", {
+    this.hintText = this.add.text(15, h - 26, "Move: ←/→   Restart: R", {
       fontFamily: "system-ui, Segoe UI, Arial",
       fontSize: "12px",
       color: "#94a3b8",
     });
 
-    // Start bg music on first user gesture (avoids Chrome autoplay block)
+    // Start bg music on first user gesture (autoplay rules)
     const startBgOnce = () => {
       if (this.bgStarted) return;
       this.bgStarted = true;
@@ -162,9 +168,19 @@ class MainScene extends Phaser.Scene {
     this.input.once("pointerdown", startBgOnce);
     this.input.keyboard?.once("keydown", startBgOnce);
 
-    // Restart (works from game over too)
+    // Restart
     this.input.keyboard?.on("keydown-R", () => {
       this.scene.restart();
+    });
+
+    // Resize handling (RESIZE mode needs this)
+    this.scale.on("resize", (gameSize: Phaser.Structs.Size) => {
+      const newW = gameSize.width;
+      const newH = gameSize.height;
+
+      this.player.y = newH - 50;
+      this.comboText.x = newW - 15;
+      this.hintText.y = newH - 26;
     });
 
     // Safety: stop music when scene is shut down
@@ -177,27 +193,24 @@ class MainScene extends Phaser.Scene {
     if (!this.alive) return;
 
     const w = this.scale.width;
+    const h = this.scale.height;
 
-    // Movement
     // Movement (keyboard + touch)
     let vx = 0;
 
-    // Keyboard
     if (this.cursors.left.isDown) vx = -6;
     if (this.cursors.right.isDown) vx = 6;
 
-    // Touch target (drag finger left/right)
     if (this.targetX !== null) {
       const dx = this.targetX - this.player.x;
-      // Smooth follow. tweak the 0.18 for faster/slower follow.
       vx = Phaser.Math.Clamp(dx * 0.18, -10, 10);
     }
 
     this.player.x += vx;
 
-    // Clamp using player width (works if you swap rectangle for a sprite later)
     const half = this.player.displayWidth / 2;
     this.player.x = Phaser.Math.Clamp(this.player.x, half, w - half);
+
     // Trail
     const t = this.add.rectangle(
       this.player.x,
@@ -243,10 +256,8 @@ class MainScene extends Phaser.Scene {
 
       this.blocks.push({ rect: block, dodged: false });
 
-      // Score ticks up with time survived
       this.addScore(1);
 
-      // Ramp difficulty
       if (this.spawnDelay > 250) this.spawnDelay -= 6;
     }
 
@@ -257,12 +268,9 @@ class MainScene extends Phaser.Scene {
 
       b.y += 4;
 
-      // Collision
       const hit =
-        Math.abs(b.x - this.player.x) <
-          b.width / 2 + this.player.width / 2 &&
-        Math.abs(b.y - this.player.y) <
-          b.height / 2 + this.player.height / 2;
+        Math.abs(b.x - this.player.x) < b.width / 2 + this.player.width / 2 &&
+        Math.abs(b.y - this.player.y) < b.height / 2 + this.player.height / 2;
 
       if (hit) {
         this.hitFX();
@@ -271,7 +279,6 @@ class MainScene extends Phaser.Scene {
         return;
       }
 
-      // Dodged (passed player)
       const passedPlayer =
         b.y > this.player.y + this.player.height / 2 + b.height / 2 + 2;
 
@@ -289,7 +296,6 @@ class MainScene extends Phaser.Scene {
         }
       }
 
-      // Near miss bonus
       const near =
         Math.abs(b.y - this.player.y) < 18 &&
         Math.abs(b.x - this.player.x) <
@@ -330,21 +336,16 @@ class MainScene extends Phaser.Scene {
         }
       }
 
-      // Cleanup
-      const h = this.scale.height;
-      
       if (b.y > h + 60) {
         b.destroy();
         this.blocks.splice(i, 1);
-}
+      }
     }
 
-    // Streak decay
     if (this.nearMissStreak > 0 && this.time.now - this.lastNearMissAt > 1200) {
       this.nearMissStreak = 0;
     }
 
-    // Tension decay
     this.tension -= 0.01 * delta;
     this.tension = Phaser.Math.Clamp(this.tension, 0, 20);
 
@@ -412,19 +413,14 @@ class MainScene extends Phaser.Scene {
   private gameOver() {
     this.alive = false;
 
-    // Stop bg music immediately
     if (this.bgMusic && this.bgMusic.isPlaying) this.bgMusic.stop();
 
-    // Kill leftover combo text tween spam
     this.tweens.killTweensOf(this.comboText);
 
     const w = this.scale.width;
     const h = this.scale.height;
 
-    // Dark overlay
-    this.add
-      .rectangle(w / 2, h / 2, w, h, 0x000000, 0.65)
-      .setDepth(999);
+    this.add.rectangle(w / 2, h / 2, w, h, 0x000000, 0.65).setDepth(999);
 
     const taunt = this.taunts[Math.floor(Math.random() * this.taunts.length)];
 
@@ -439,7 +435,6 @@ class MainScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setDepth(1000);
 
-    // Flash taunt
     this.tweens.add({
       targets: tauntText,
       alpha: { from: 1, to: 0.2 },
@@ -473,7 +468,6 @@ class MainScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setDepth(1000);
 
-    // Try Again button
     const button = this.add
       .rectangle(w / 2, h / 2 + 90, 180, 44, 0x39e7ff)
       .setInteractive({ useHandCursor: true })
@@ -495,9 +489,6 @@ class MainScene extends Phaser.Scene {
     button.on("pointerdown", () => {
       this.scene.restart();
     });
-
-    // Optional: allow click anywhere to restart too
-    this.input.once("pointerdown", () => this.scene.restart());
   }
 }
 
@@ -511,4 +502,3 @@ new Phaser.Game({
   },
   scene: MainScene,
 });
-

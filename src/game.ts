@@ -501,10 +501,15 @@ class MainScene extends Phaser.Scene {
 
 new Phaser.Game({
   type: Phaser.AUTO,
-  width: 500,
-  height: 500,
   parent: "app",
-  scene: MainScene,
-
+  width: window.innerWidth,
+  height: window.innerHeight,
+  backgroundColor: "#0f1226",
+  scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH
+  },
+  scene: MainScene
 });
+
 

@@ -331,10 +331,12 @@ class MainScene extends Phaser.Scene {
       }
 
       // Cleanup
-      if (b.y > 520) {
+      const h = this.scale.height;
+      
+      if (b.y > h + 60) {
         b.destroy();
         this.blocks.splice(i, 1);
-      }
+}
     }
 
     // Streak decay
@@ -509,3 +511,4 @@ new Phaser.Game({
   },
   scene: MainScene,
 });
+

@@ -499,10 +499,14 @@ new Phaser.Game({
   type: Phaser.AUTO,
   parent: "app",
   backgroundColor: "#0f1226",
+
+  width: 500,
+  height: 500,
+
   scale: {
-    mode: Phaser.Scale.RESIZE,
+    mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
+
   scene: MainScene,
 });
-
